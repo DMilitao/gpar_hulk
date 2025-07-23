@@ -1,0 +1,32 @@
+List created in  23-Jul-2025
+
+Install ROS 1 following the steps in:
+	- https://wiki.ros.org/noetic/Installation/Ubuntu
+
+Once installed, it is needed to initialize the workspace
+	- Inside workspace run:
+		catkin_make
+		source ./devel/setup.bash
+
+The environment is now ready to start, then run in the first terminal:
+	roscore
+
+Once the ros in running, in the second terminal you have two choices:
+	- If you want to test your serial, run:
+		rosrun gpar_hulk serial_test
+
+	Now you gonna see the return of the speed read.
+
+	- If you want to start the main node of the hulk
+		roslaunch gpar_hulk start_hulk.launch
+
+	Now the node is running then you can run any code you want.
+
+To run the code that uses the keyboard as input, do:
+	rosrun gpar_hulk hulk_move
+
+To list the topics running in the system, do:
+	rostopic list
+
+To see the data of one topic, do:
+	rostopic echo <topic_name>

@@ -1,0 +1,3 @@
+<launch>
+	<node name="hulk_node" pkg="gpar_hulk" type="hulk_node" output="screen"/>
+</launch>
