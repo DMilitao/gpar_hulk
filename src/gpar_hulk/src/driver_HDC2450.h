@@ -9,7 +9,6 @@
 
 struct Leitura_String{
 
-    //Vão armazenar os dados das leituras
     int ve_rpm;
     int vd_rpm;
     
@@ -28,82 +27,155 @@ struct Leitura_String{
 
 class Driver
 {
-	private:
-                Leitura_String dados;	
-		serial::Serial *porta_serial;
 	public:		
 		Driver();		
-		
+
+		/**
+		 * \brief Open the serial port
+		 * \param porta The desired port to connect
+		 */
 		void serial_open(std::string porta);
 
+		/**
+		 * \brief Set the RPM speed of each wheel
+		 * \param vd_rpm The speed of the right wheel
+		 * \param ve_rpm The speed of the left wheel
+		 */
 		void set_speed(int vd_rpm, int ve_rpm);
+
+		/**
+		 * \brief Read the RPM speed of each wheel
+		 */
 		void read_speed();
+
+		/**
+		 * \brief Ger the RPM speed of left wheel
+		 * \return The speed
+		 */
 		int read_ve();
+
+		/**
+		 * \brief Get the RPM speed of right wheel
+		 * \return The speed
+		 */
 		int read_vd();	
-		
+
+		/**
+		 * \brief Read the current each motor
+		 */
 		void read_current();
+
+		/**
+		 * \brief Get the current of right motor
+		 * \return The current
+		 */
 		float read_current_d();
+
+		/**
+		 * \brief Get the current of left motor
+		 * \return The current
+		 */
 		float read_current_e();
-		
-		
+
+		/**
+		 * \brief Read the temperature of components
+		 */
 		void read_temp();
+
+		/**
+		 * \brief Get the temperature of MCU
+		 * \return The temperature
+		 */
 		int read_temp_MCU();
+
+		/**
+		 * \brief Get the temperature of right motor
+		 * \return The temperature
+		 */
 		int read_temp_motor1();
+
+		/**
+		 * \brief Get the temperature of left motor
+		 * \return The temperature
+		 */
 		int read_temp_motor2();
-		
+
+		/**
+		 * \brief Read the voltage of components
+		 */
 		void read_volt();
+
+		/**
+		 * \brief Get the internal voltage
+		 * \return The internal voltage
+		 */
 		float read_volt_int();
+
+		/**
+		 * \brief Get the battery voltage
+		 * \return The battery voltage
+		 */
 		float read_volt_bat();
+
+		/**
+		 * \brief Get the output voltage
+		 * \return The output voltage
+		 */
 		float read_volt_out();
 
+		/**
+		 * \brief Read all components
+		 */
 		void read();
 		
 		~Driver();
+
+	private:
+		Leitura_String dados;			//!> Storage data about system
+		serial::Serial *porta_serial;	//!> Serial port object
 	
 };
-	Driver::Driver(){
-	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
-	}
-	
-void Driver::serial_open(std::string porta){
-     	porta_serial = new serial::Serial(porta,115200,serial::Timeout::simpleTimeout(1000));
 
-	while(!porta_serial->isOpen())
+Driver::Driver(){
+	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
+}
+
+void Driver::serial_open(std::string porta){
+	porta_serial = new serial::Serial(porta,115200,serial::Timeout::simpleTimeout(1000));
+
+	while(!porta_serial->isOpen()) {
 		std::cout<<"Waiting...";
-	std::cout<<"Serial port is ready!"<<std::endl;	
-     }
+	}
+
+	std::cout<<"Serial port is ready!"<<std::endl;
+}
 
 void Driver::set_speed(int vd_rpm, int ve_rpm){	
 	std::string msg;
-	std::stringstream comando1,comando2;
+	std::stringstream comando1, comando2;
 
-	// Motor 1 roda direita e motor 2 roda esquerda, para esse programa!
-	//std::cout<<"!G 1 "<<vd_rpm<<std::endl;
+	// Motor 1 - Right Wheel || Motor 2 - Left Wheel
 	comando1<<"!G 1 "<<vd_rpm<<"\r";
 	porta_serial->write(comando1.str());
-		
-	//precisamos ler duas vezes pois o driver envia o echo(mesma informação novamente) e além disso um +\r
-	msg =  porta_serial->readline(100,"\r");
-	//std::cout<<"Echo: "<<msg<<std::endl;	
+
+	// Discard the first read (it is an echo of the command)
 	msg = porta_serial->readline(100,"\r");
-	
-
-
+	msg = porta_serial->readline(100,"\r");
 
 	comando2<<"!G 2 "<<ve_rpm<<"\r";
 	porta_serial->write(comando2.str());	
-	
+
+	// Discard the first read (it is an echo of the command)	
 	msg = porta_serial->readline(100,"\r");
 	msg = porta_serial->readline(100,"\r");
 }
 
 void Driver::read_speed(){
-	
 	std::string resposta;
 	
 	porta_serial->write("?S\r");
-	
-	//Usamos dois pois uma das leituras serve para ler o echo, enquanto o outro a informação de fato
+
+	// Discard the first read (it is an echo of the command)
 	resposta = porta_serial->readline(100,"\r");
 	resposta = porta_serial->readline(100,"\r");
 	
@@ -111,7 +183,6 @@ void Driver::read_speed(){
 }
 
 int Driver::read_ve(){
-
 	return dados.ve_rpm;
 }			
 
@@ -124,12 +195,11 @@ void Driver::read_current(){
 	
 	porta_serial->write("?A\r");
 	
-	//Usamos dois pois uma das leituras serve para ler o echo, enquanto o outro a informação de fato
+	// Discard the first read (it is an echo of the command)
 	resposta = porta_serial->readline(100,"\r");
 	resposta = porta_serial->readline(100,"\r");
 	
 	sscanf(resposta.c_str(),"A	=%f:%f\r",&dados.current_d,&dados.current_e);
-	
 }
 
 float Driver::read_current_d(){
@@ -145,7 +215,7 @@ void Driver::read_temp(){
 	
 	porta_serial->write("?T\r");
 	
-	//Usamos dois pois uma das leituras serve para ler o echo, enquanto o outro a informação de fato
+	// Discard the first read (it is an echo of the command)
 	resposta = porta_serial->readline(100,"\r");
 	resposta = porta_serial->readline(100,"\r");
 	
@@ -169,7 +239,7 @@ void Driver::read_volt(){
 	
 	porta_serial->write("?V\r");
 	
-	//Usamos dois pois uma das leituras serve para ler o echo, enquanto o outro a informação de fato
+	// Discard the first read (it is an echo of the command)
 	resposta = porta_serial->readline(100,"\r");
 	resposta = porta_serial->readline(100,"\r");
 	
@@ -196,10 +266,10 @@ void Driver::read(){
 	read_volt();
 }
 
-	Driver::~Driver(){
-		std::cout<<"\nFinalizando Programa"<<std::endl;
-		delete porta_serial;
-		}
+Driver::~Driver(){
+	std::cout<<"\nFinish program..."<<std::endl;
+	delete porta_serial;
+}
 
 
 

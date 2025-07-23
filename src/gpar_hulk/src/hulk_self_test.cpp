@@ -14,7 +14,7 @@
 
 int kfd = 0;
 char c; 
-struct termios cooked,raw;
+struct termios cooked, raw;
 
 
 class Hulk_move
@@ -25,13 +25,13 @@ class Hulk_move
 
 	private:
 	ros::Publisher pub;
-	double linear,angular;
+	double linear, angular;
 
 };
 	
 int main (int argc, char **argv){	
 
-	ros::init(argc,argv,"hulk_move");
+	ros::init(argc, argv, "hulk_self_test");
     	
 	Hulk_move movimento;    
 

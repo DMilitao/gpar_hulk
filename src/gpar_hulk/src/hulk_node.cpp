@@ -48,8 +48,9 @@ int main(int argc, char **argv)
 	ros::Publisher info_battery = n_private.advertise<sensor_msgs::BatteryState>("battery_info",1000);
 	ros::Publisher info_odom = n_private.advertise<geometry_msgs::Point>("odometria",1000);
 
-	ros::Subscriber get_velocity = n.subscribe("/hulk_move/speed",1000,Velocidade_motor_rpm);	
-	
+	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,Velocidade_motor_rpm);
+	ros::Subscriber get_velocity_self_test = n.subscribe("/hulk_self_test/speed",1000,Velocidade_motor_rpm);
+
 	n_private.getParam("porta_serial",porta);	
 	
 	HULK.serial_open(porta);
@@ -90,7 +91,7 @@ void Velocidade_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade){
 	float w = velocidade->angular.z;
 		
 	vd_rad = (2*v+w*L)/(2*R);
-        ve_rad = (2*v-w*L)/(2*R);
+	ve_rad = (2*v-w*L)/(2*R);
 
 	vd_rpm = (vd_rad*60/(2*PI));
 	ve_rpm = (ve_rad*60/(2*PI));
@@ -98,7 +99,7 @@ void Velocidade_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade){
 	std::cout<<"Velocidade roda direita = "<<vd_rpm<<"\nVelocidade roda esquerda = "<<ve_rpm<<std::endl;
 	HULK.set_speed(vd_rpm,ve_rpm);
 }
-
+    
 void Dados_hulk(){
 	
 	hulk_dados.voltage = HULK.read_volt_bat();

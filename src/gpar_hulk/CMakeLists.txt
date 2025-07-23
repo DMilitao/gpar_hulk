@@ -212,16 +212,17 @@ include_directories(
 add_executable(serial_test src/serial_test.cpp)
 target_link_libraries(serial_test ${catkin_LIBRARIES})
 
-add_executable(hulk_move src/hulk_move.cpp)
-target_link_libraries(hulk_move ${catkin_LIBRARIES})
+add_executable(hulk_keyboard src/hulk_keyboard.cpp)
+target_link_libraries(hulk_keyboard ${catkin_LIBRARIES})
+
+add_executable(hulk_self_test src/hulk_self_test.cpp)
+target_link_libraries(hulk_self_test ${catkin_LIBRARIES})
 
 add_executable(hulk_node src/hulk_node.cpp)
 target_link_libraries(hulk_node ${catkin_LIBRARIES} -lwiringPi)
 
-
 add_executable(turtle_location src/turtle_location.cpp)
 target_link_libraries(turtle_location ${catkin_LIBRARIES} -lwiringPi)
-
 
 add_executable(server src/server.cpp)
 target_link_libraries(server ${catkin_LIBRARIES})
