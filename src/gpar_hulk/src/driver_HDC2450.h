@@ -130,14 +130,23 @@ class Driver
 		
 		~Driver();
 
+		// The RPM speed needs to be converted in a range between -1000 and 1000 due to the driver
+		// Knowing the maximal speed set in the driver is 200 RPM
+		// The speed sent to driver should be expressed as value/200*1000 or value*5
+		int cte_driver();
+
 	private:
 		Leitura_String dados;			//!> Storage data about system
 		serial::Serial *porta_serial;	//!> Serial port object
-	
+		int cte_driver_ = 5;
 };
 
 Driver::Driver(){
 	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
+}
+
+int Driver::cte_driver() {
+	return cte_driver_;
 }
 
 void Driver::serial_open(std::string porta){
@@ -155,14 +164,15 @@ void Driver::set_speed(int vd_rpm, int ve_rpm){
 	std::stringstream comando1, comando2;
 
 	// Motor 1 - Right Wheel || Motor 2 - Left Wheel
-	comando1<<"!G 1 "<<vd_rpm<<"\r";
+
+	comando1<<"!G 1 "<<vd_rpm*cte_driver()<<"\r";
 	porta_serial->write(comando1.str());
 
 	// Discard the first read (it is an echo of the command)
 	msg = porta_serial->readline(100,"\r");
 	msg = porta_serial->readline(100,"\r");
 
-	comando2<<"!G 2 "<<ve_rpm<<"\r";
+	comando2<<"!G 2 "<<ve_rpm*cte_driver()<<"\r";
 	porta_serial->write(comando2.str());	
 
 	// Discard the first read (it is an echo of the command)	
