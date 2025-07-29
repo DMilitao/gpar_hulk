@@ -8,19 +8,18 @@
 #include "math.h"
 #include "geometry_msgs/Point.h"
 
-void Velocidade_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
-void Set_Position(const std_msgs::String::ConstPtr& position);
+void speed_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
+//void Set_Position(const std_msgs::String::ConstPtr& position);
 void Dados_hulk();
 void hulk_odometria();
 
-//Variáveis Globais
 const float PI = 3.141592654;
-float L = 0.42; // distância entre as rodas
-float R = 0.075; // raio das rodas
-float vd_rad;
-float ve_rad;
-int vd_rpm = 0; // velocidade da roda direita em rpm
-int ve_rpm = 0; // velocidade da roda esquerda em rpm
+const float L = 0.42;  // Distance between wheels
+const float R = 0.075; // Wheel radius
+float right_speed_rad;
+float left_speed_rad;
+int right_speed_rpm = 0;
+int left_speed_rpm = 0;
 
 //Orientation and Translation
 float x = 0;
@@ -38,7 +37,7 @@ int main(int argc, char **argv)
 	std_msgs::String velocidade;
 	std_msgs::String position;
 	geometry_msgs::Point odom;
-	geometry_msgs::Point v_hulk; //ve_rpm --> x and vd_rpm --> y
+	geometry_msgs::Point speed_hulk; //left_speed_rpm --> x and right_speed_rpm --> y
 
 	ros::init(argc,argv,"hulk_node");
 	ros::NodeHandle n;
@@ -48,8 +47,8 @@ int main(int argc, char **argv)
 	ros::Publisher info_battery = n_private.advertise<sensor_msgs::BatteryState>("battery_info",1000);
 	ros::Publisher info_odom = n_private.advertise<geometry_msgs::Point>("odometria",1000);
 
-	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,Velocidade_motor_rpm);
-	ros::Subscriber get_velocity_self_test = n.subscribe("/hulk_self_test/speed",1000,Velocidade_motor_rpm);
+	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,speed_motor_rpm);
+	ros::Subscriber get_velocity_self_test = n.subscribe("/hulk_self_test/speed",1000,speed_motor_rpm);
 
 	n_private.getParam("porta_serial",porta);	
 	
@@ -70,11 +69,11 @@ int main(int argc, char **argv)
 	odom.y = y;
 	odom.z = theta;
 
-    v_hulk.x = HULK.read_ve();
-    v_hulk.y = HULK.read_vd();
+    speed_hulk.x = HULK.read_ve();
+    speed_hulk.y = HULK.read_vd();
   
 	info_odom.publish(odom);
-	info_velocity.publish(v_hulk);
+	info_velocity.publish(speed_hulk);
 	info_battery.publish(hulk_dados);
 
 	ros::spinOnce();
@@ -86,18 +85,18 @@ return 0;
 }
 
 //Realizando o cáculo das velocidades de cada motor em rpm
-void Velocidade_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade){
-	float v = velocidade->linear.x;
-	float w = velocidade->angular.z;
+void speed_motor_rpm(const geometry_msgs::Twist::ConstPtr& speed){
+	float v = speed->linear.x;
+	float w = speed->angular.z;
 		
-	vd_rad = (2*v+w*L)/(2*R);
-	ve_rad = (2*v-w*L)/(2*R);
+	right_speed_rad = (2*v+w*L)/(2*R);
+	left_speed_rad = (2*v-w*L)/(2*R);
 
-	vd_rpm = (vd_rad*60/(2*PI));
-	ve_rpm = (ve_rad*60/(2*PI));
+	right_speed_rpm = (right_speed_rad*60/(2*PI));
+	left_speed_rpm = (left_speed_rad*60/(2*PI));
 	
-	std::cout<<"Velocidade roda direita = "<<vd_rpm<<"\nVelocidade roda esquerda = "<<ve_rpm<<std::endl;
-	HULK.set_speed(vd_rpm,ve_rpm);
+	std::cout<<"Velocidade roda direita = "<<right_speed_rpm<<"\nVelocidade roda esquerda = "<<left_speed_rpm<<std::endl;
+	HULK.set_speed(right_speed_rpm,left_speed_rpm);
 }
     
 void Dados_hulk(){
@@ -109,34 +108,30 @@ void Dados_hulk(){
 }
 	
 void hulk_odometria(){
-	float Ve_rpm = 0;
-	float Vd_rpm = 0;
-	float Ve_rad = 0;
-	float Vd_rad = 0;
-	float ve_m = 0;
-	float vd_m = 0;
+	float left_speed_m = 0;
+	float right_speed_m = 0;
 	float dt = 1/20.0;
 
 	// recebendo as velocidades das rodas em rpm
-	Ve_rpm = HULK.read_ve();
-	Vd_rpm = HULK.read_vd();
+	left_speed_rpm = HULK.read_ve();
+	right_speed_rpm = HULK.read_vd();
 	// dt = 1/f ; f=20Hz
 
 	// conversão para rad/s
-	Ve_rad = (Ve_rpm*2*PI)/60;
-	Vd_rad = (Vd_rpm*2*PI)/60;
+	left_speed_rad = (left_speed_rpm*2*PI)/60;
+	right_speed_rad = (right_speed_rpm*2*PI)/60;
 	
 	// conversão para m/s
-	ve_m = Ve_rad*R;
-	vd_m = Vd_rad*R;
+	left_speed_m = left_speed_rad*R;
+	right_speed_m = right_speed_rad*R;
 
 	// cálculo de theta
 	// obs: curva para direita -> w<0 ; curva para esquerda -> w>0
-	theta = theta + ((vd_m - ve_m)/L)*dt;
+	theta = theta + ((right_speed_m - left_speed_m)/L)*dt;
 
 	// cálculo de X e Y
-	x = x + ((ve_m + vd_m)/2)*cos(theta)*dt;
-	y = y + ((ve_m + vd_m)/2)*sin(theta)*dt;
+	x = x + ((left_speed_m + right_speed_m)/2)*cos(theta)*dt;
+	y = y + ((left_speed_m + right_speed_m)/2)*sin(theta)*dt;
 }	
 	
 

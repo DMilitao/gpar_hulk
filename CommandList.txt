@@ -1,5 +1,9 @@
 List created in  23-Jul-2025
 
+The driver files of the HDC250 are in the folder "driver"
+	- The setup RoborunPlus compatible with the firmware version 1.2
+	- The current settings profile in the driver "ProfileMilitao290725.xml"
+
 Install ROS 1 following the steps in:
 	- https://wiki.ros.org/noetic/Installation/Ubuntu
 
