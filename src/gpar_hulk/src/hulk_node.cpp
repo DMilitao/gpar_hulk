@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     hulk_speed.x = HULK.left_speed();
     hulk_speed.y = HULK.right_speed();
   
-	info_odometry.publish(odometry);
+	info_odometry.publish(hulk_position);
 	info_velocity.publish(hulk_speed);
 	info_battery.publish(hulk_data);
 
@@ -138,6 +138,3 @@ void hulk_odometry(){
 	x = x + ((left_speed_m + right_speed_m)/2)*cos(theta)*dt;
 	y = y + ((left_speed_m + right_speed_m)/2)*sin(theta)*dt;
 }	
-	
-
-

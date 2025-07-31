@@ -6,6 +6,7 @@
 #include <sstream>
 #include <unistd.h>
 
+//#include "ros/ros.h"
 #include "sensor_msgs/BatteryState.h"
 #include "serial/serial.h"
 
@@ -140,15 +141,18 @@ class Driver
 
 Driver::Driver(){
 	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
+	//ROS_INFO("HULK DRIVER STARTED");
 }
 
 void Driver::serial_open(std::string serial_port){
 	serial_port_ = new serial::Serial(serial_port,115200,serial::Timeout::simpleTimeout(1000));
 
 	while(!serial_port_->isOpen()) {
+		//ROS_ERROR("DRIVER NOT FOUND");
 		std::cout<<"Waiting...";
 	}
 
+	//ROS_INFO("SERIAL PORT IS READY!");
 	std::cout<<"Serial port is ready!"<<std::endl;
 }
 
