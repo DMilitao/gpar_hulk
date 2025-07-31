@@ -15,11 +15,9 @@ int main(int argc, char **argv){
 	ros::Rate freq(10);
 	while(ros::ok()){
 		HULK.set_speed(300,-300);
-		HULK.read_speed();
-		std::cout<<HULK.read_ve()<<" "<<HULK.read_vd()<<std::endl;
-		freq.sleep();
-		
+		HULK.get_speed();
+		std::cout<<HULK.left_speed()<<" "<<HULK.right_speed()<<std::endl;
+		freq.sleep();		
 }
-
 }
 

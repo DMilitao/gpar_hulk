@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   serial
-message_generation
+  message_generation
   nav_msgs
 )
 
@@ -215,8 +215,8 @@ target_link_libraries(serial_test ${catkin_LIBRARIES})
 add_executable(hulk_keyboard src/hulk_keyboard.cpp)
 target_link_libraries(hulk_keyboard ${catkin_LIBRARIES})
 
-add_executable(hulk_self_test src/hulk_self_test.cpp)
-target_link_libraries(hulk_self_test ${catkin_LIBRARIES})
+add_executable(self_test src/self_test.cpp)
+target_link_libraries(self_test ${catkin_LIBRARIES})
 
 add_executable(hulk_node src/hulk_node.cpp)
 target_link_libraries(hulk_node ${catkin_LIBRARIES} -lwiringPi)

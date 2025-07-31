@@ -8,51 +8,53 @@
 #include "math.h"
 #include "geometry_msgs/Point.h"
 
-void speed_motor_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
+void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
 //void Set_Position(const std_msgs::String::ConstPtr& position);
-void Dados_hulk();
-void hulk_odometria();
+void hulk_battery();
+void hulk_odometry();
 
 const float PI = 3.141592654;
 const float L = 0.42;  // Distance between wheels
 const float R = 0.075; // Wheel radius
+const float th_battery_min = 24;
+
 float right_speed_rad;
 float left_speed_rad;
 int right_speed_rpm = 0;
 int left_speed_rpm = 0;
+
 
 //Orientation and Translation
 float x = 0;
 float y = 0;
 float theta = 0;
 
-std::string porta = "/dev/ttyACM0";
+std::string serial_port = "/dev/ttyACM0";
 
 Driver HULK;
 
-sensor_msgs::BatteryState hulk_dados;
+sensor_msgs::BatteryState hulk_data;
 
 int main(int argc, char **argv)
 {
-	std_msgs::String velocidade;
-	std_msgs::String position;
-	geometry_msgs::Point odom;
-	geometry_msgs::Point speed_hulk; //left_speed_rpm --> x and right_speed_rpm --> y
+	//std_msgs::String velocidade;
+	//std_msgs::String position;
+	geometry_msgs::Point hulk_position;
+	geometry_msgs::Point hulk_speed; //left_speed_rpm --> x and right_speed_rpm --> y
 
-	ros::init(argc,argv,"hulk_node");
+	ros::init(argc, argv, "hulk_node");
 	ros::NodeHandle n;
 	ros::NodeHandle n_private("~");
 
 	ros::Publisher info_velocity = n_private.advertise<geometry_msgs::Point>("read_speed",1000);
 	ros::Publisher info_battery = n_private.advertise<sensor_msgs::BatteryState>("battery_info",1000);
-	ros::Publisher info_odom = n_private.advertise<geometry_msgs::Point>("odometria",1000);
+	ros::Publisher info_odometry = n_private.advertise<geometry_msgs::Point>("odometry",1000);
 
-	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,speed_motor_rpm);
-	ros::Subscriber get_velocity_self_test = n.subscribe("/hulk_self_test/speed",1000,speed_motor_rpm);
+	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,set_speed_rpm);
 
-	n_private.getParam("porta_serial",porta);	
+	//n_private.getParam("serial_port",serial_port);	
 	
-	HULK.serial_open(porta);
+	HULK.serial_open(serial_port);
 	
 	ros::Rate freq(20);
 
@@ -61,20 +63,25 @@ int main(int argc, char **argv)
 	while(ros::ok()){
 	current_time = ros::Time::now();
 
-	HULK.read();
-	Dados_hulk();
-	hulk_odometria();
+	HULK.get_all();
+	hulk_battery();
+	hulk_odometry();
 
-	odom.x = x;
-	odom.y = y;
-	odom.z = theta;
+	if ( hulk_data.voltage < th_battery_min ) {
+		std::cout << "Battery level extremely low: Shutting down the node" << std::endl;
+		ros::shutdown();
+	}
 
-    speed_hulk.x = HULK.read_ve();
-    speed_hulk.y = HULK.read_vd();
+	hulk_position.x = x;
+	hulk_position.y = y;
+	hulk_position.z = theta;
+
+    hulk_speed.x = HULK.left_speed();
+    hulk_speed.y = HULK.right_speed();
   
-	info_odom.publish(odom);
-	info_velocity.publish(speed_hulk);
-	info_battery.publish(hulk_dados);
+	info_odometry.publish(odometry);
+	info_velocity.publish(hulk_speed);
+	info_battery.publish(hulk_data);
 
 	ros::spinOnce();
 	
@@ -85,7 +92,7 @@ return 0;
 }
 
 //Realizando o cáculo das velocidades de cada motor em rpm
-void speed_motor_rpm(const geometry_msgs::Twist::ConstPtr& speed){
+void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& speed){
 	float v = speed->linear.x;
 	float w = speed->angular.z;
 		
@@ -95,26 +102,24 @@ void speed_motor_rpm(const geometry_msgs::Twist::ConstPtr& speed){
 	right_speed_rpm = (right_speed_rad*60/(2*PI));
 	left_speed_rpm = (left_speed_rad*60/(2*PI));
 	
-	std::cout<<"Velocidade roda direita = "<<right_speed_rpm<<"\nVelocidade roda esquerda = "<<left_speed_rpm<<std::endl;
 	HULK.set_speed(right_speed_rpm,left_speed_rpm);
 }
     
-void Dados_hulk(){
-	
-	hulk_dados.voltage = HULK.read_volt_bat();
-	hulk_dados.current = (HULK.read_current_d()*1000+HULK.read_current_e()*10);
-	hulk_dados.percentage = (HULK.read_volt_bat()/24)*100.0;
+void hulk_battery(){
+	hulk_data.voltage = HULK.volt_bat();
+	hulk_data.current = (HULK.current_right()*1000+HULK.current_left()*10);
+	hulk_data.percentage = (HULK.volt_bat()/24)*100.0;
 	
 }
 	
-void hulk_odometria(){
+void hulk_odometry(){
 	float left_speed_m = 0;
 	float right_speed_m = 0;
 	float dt = 1/20.0;
 
 	// recebendo as velocidades das rodas em rpm
-	left_speed_rpm = HULK.read_ve();
-	right_speed_rpm = HULK.read_vd();
+	left_speed_rpm = HULK.left_speed();
+	right_speed_rpm = HULK.right_speed();
 	// dt = 1/f ; f=20Hz
 
 	// conversão para rad/s

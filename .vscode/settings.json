@@ -2,6 +2,7 @@
     "files.associations": {
         "unordered_map": "cpp",
         "sstream": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "iostream": "cpp"
     }
 }
