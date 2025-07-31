@@ -1,27 +1,30 @@
-#include <iostream>
-#include <sstream>
 #include "string.h"
-#include "serial/serial.h"
-#include <unistd.h>
-#include <stdlib.h>
+
 #include <cstdio>
+#include <iostream>
+#include <stdlib.h>
+#include <sstream>
+#include <unistd.h>
+
+//#include "ros/ros.h"
 #include "sensor_msgs/BatteryState.h"
+#include "serial/serial.h"
 
-struct Leitura_String{
+struct DataBase{
 
-    int ve_rpm;
-    int vd_rpm;
+    int left_speed_rpm_;
+    int right_speed_rpm_;
     
-    float current_d;
-    float current_e;
+    float current_right_;
+    float current_left_;
     
-    int temp_MCU;
-    int temp_motor1;
-    int temp_motor2;
+    int temp_MCU_;
+    int temp_motor1_;
+    int temp_motor2_;
     
-    float volt_internal;
-    float volt_battery;
-    float volt_output;
+    float volt_internal_;
+    float volt_battery_;
+    float volt_output_;
 
 };
 
@@ -32,253 +35,250 @@ class Driver
 
 		/**
 		 * \brief Open the serial port
-		 * \param porta The desired port to connect
+		 * \param serial_port The desired port to connect
 		 */
-		void serial_open(std::string porta);
+		void serial_open(std::string serial_port);
 
 		/**
 		 * \brief Set the RPM speed of each wheel
-		 * \param vd_rpm The speed of the right wheel
-		 * \param ve_rpm The speed of the left wheel
+		 * \param right_speed_rpm The speed of the right wheel
+		 * \param left_speed_rpm The speed of the left wheel
 		 */
-		void set_speed(int vd_rpm, int ve_rpm);
+		void set_speed(int right_speed_rpm, int left_speed_rpm);
 
 		/**
 		 * \brief Read the RPM speed of each wheel
 		 */
-		void read_speed();
+		void get_speed();
 
 		/**
 		 * \brief Ger the RPM speed of left wheel
 		 * \return The speed
 		 */
-		int read_ve();
+		int left_speed();
 
 		/**
 		 * \brief Get the RPM speed of right wheel
 		 * \return The speed
 		 */
-		int read_vd();	
+		int right_speed();	
 
 		/**
 		 * \brief Read the current each motor
 		 */
-		void read_current();
+		void get_current();
 
 		/**
 		 * \brief Get the current of right motor
 		 * \return The current
 		 */
-		float read_current_d();
+		float current_right();
 
 		/**
 		 * \brief Get the current of left motor
 		 * \return The current
 		 */
-		float read_current_e();
+		float current_left();
 
 		/**
 		 * \brief Read the temperature of components
 		 */
-		void read_temp();
+		void get_temp();
 
 		/**
 		 * \brief Get the temperature of MCU
 		 * \return The temperature
 		 */
-		int read_temp_MCU();
+		int temp_MCU();
 
 		/**
 		 * \brief Get the temperature of right motor
 		 * \return The temperature
 		 */
-		int read_temp_motor1();
+		int temp_motor1();
 
 		/**
 		 * \brief Get the temperature of left motor
 		 * \return The temperature
 		 */
-		int read_temp_motor2();
+		int temp_motor2();
 
 		/**
 		 * \brief Read the voltage of components
 		 */
-		void read_volt();
+		void get_volt();
 
 		/**
 		 * \brief Get the internal voltage
 		 * \return The internal voltage
 		 */
-		float read_volt_int();
+		float volt_int();
 
 		/**
 		 * \brief Get the battery voltage
 		 * \return The battery voltage
 		 */
-		float read_volt_bat();
+		float volt_bat();
 
 		/**
 		 * \brief Get the output voltage
 		 * \return The output voltage
 		 */
-		float read_volt_out();
+		float volt_out();
 
 		/**
 		 * \brief Read all components
 		 */
-		void read();
+		void get_all();
 		
 		~Driver();
 
-		// The RPM speed needs to be converted in a range between -1000 and 1000 due to the driver
-		// Knowing the maximal speed set in the driver is 200 RPM
-		// The speed sent to driver should be expressed as value/200*1000 or value*5
-		int cte_driver();
-
 	private:
-		Leitura_String dados;			//!> Storage data about system
-		serial::Serial *porta_serial;	//!> Serial port object
-		int cte_driver_ = 5;
+		DataBase data_;					//!> Storage data about system
+		serial::Serial *serial_port_;	//!> Serial port object
+		int cte_driver_ = 5;			//!> Driver constant for speed setpoint conversion
 };
 
 Driver::Driver(){
 	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
+	//ROS_INFO("HULK DRIVER STARTED");
 }
 
-int Driver::cte_driver() {
-	return cte_driver_;
-}
+void Driver::serial_open(std::string serial_port){
+	serial_port_ = new serial::Serial(serial_port,115200,serial::Timeout::simpleTimeout(1000));
 
-void Driver::serial_open(std::string porta){
-	porta_serial = new serial::Serial(porta,115200,serial::Timeout::simpleTimeout(1000));
-
-	while(!porta_serial->isOpen()) {
+	while(!serial_port_->isOpen()) {
+		//ROS_ERROR("DRIVER NOT FOUND");
 		std::cout<<"Waiting...";
 	}
 
+	//ROS_INFO("SERIAL PORT IS READY!");
 	std::cout<<"Serial port is ready!"<<std::endl;
 }
 
-void Driver::set_speed(int vd_rpm, int ve_rpm){	
+void Driver::set_speed(int right_speed_rpm, int left_speed_rpm){	
 	std::string msg;
-	std::stringstream comando1, comando2;
+	std::stringstream command1, command2;
+
+	// The RPM speed needs to be converted in a range between -1000 and 1000 due to the driver
+	// Knowing the maximal speed set in the driver is 200 RPM
+	// The speed sent to driver should be expressed as (value/200RPM)*1000RPM or value*5
 
 	// Motor 1 - Right Wheel || Motor 2 - Left Wheel
-
-	comando1<<"!G 1 "<<vd_rpm*cte_driver()<<"\r";
-	porta_serial->write(comando1.str());
+	command1<<"!G 1 "<<right_speed_rpm*cte_driver_<<"\r";
+	serial_port_->write(command1.str());
 
 	// Discard the first read (it is an echo of the command)
-	msg = porta_serial->readline(100,"\r");
-	msg = porta_serial->readline(100,"\r");
+	msg = serial_port_->readline(100,"\r");
+	msg = serial_port_->readline(100,"\r");
 
-	comando2<<"!G 2 "<<ve_rpm*cte_driver()<<"\r";
-	porta_serial->write(comando2.str());	
+	command2<<"!G 2 "<<left_speed_rpm*cte_driver_<<"\r";
+	serial_port_->write(command2.str());	
 
 	// Discard the first read (it is an echo of the command)	
-	msg = porta_serial->readline(100,"\r");
-	msg = porta_serial->readline(100,"\r");
+	msg = serial_port_->readline(100,"\r");
+	msg = serial_port_->readline(100,"\r");
 }
 
-void Driver::read_speed(){
+void Driver::get_speed(){
 	std::string resposta;
 	
-	porta_serial->write("?S\r");
+	serial_port_->write("?S\r");
 
 	// Discard the first read (it is an echo of the command)
-	resposta = porta_serial->readline(100,"\r");
-	resposta = porta_serial->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
 	
-	sscanf(resposta.c_str(),"S=%d:%d\r",&dados.vd_rpm,&dados.ve_rpm);
+	sscanf(resposta.c_str(),"S=%d:%d\r",&data_.right_speed_rpm_,&data_.left_speed_rpm_);
 }
 
-int Driver::read_ve(){
-	return dados.ve_rpm;
+int Driver::left_speed(){
+	return data_.left_speed_rpm_;
 }			
 
-int Driver::read_vd(){
+int Driver::right_speed(){
+    return data_.right_speed_rpm_;
+}
 
-        return dados.vd_rpm;
+void Driver::get_current(){
+	std::string resposta;
+	
+	serial_port_->write("?A\r");
+	
+	// Discard the first read (it is an echo of the command)
+	resposta = serial_port_->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
+	
+	sscanf(resposta.c_str(),"A	=%f:%f\r",&data_.current_right_,&data_.current_left_);
+}
+
+float Driver::current_right(){
+	return data_.current_right_;
+}
+
+float Driver::current_left(){
+	return data_.current_left_;
+}
+
+void Driver::get_temp(){
+	std::string resposta;
+	
+	serial_port_->write("?T\r");
+	
+	// Discard the first read (it is an echo of the command)
+	resposta = serial_port_->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
+	
+	sscanf(resposta.c_str(),"T=%d:%d:%d\r",&data_.temp_MCU_,&data_.temp_motor1_,&data_.temp_motor2_);
+}
+
+int Driver::temp_MCU(){
+	return data_.temp_MCU_;
+}
+
+int Driver::temp_motor1(){
+	return data_.temp_motor1_;
+}
+
+int Driver::temp_motor2(){
+	return data_.temp_motor2_;
 }	
-void Driver::read_current(){
+
+void Driver::get_volt(){
 	std::string resposta;
 	
-	porta_serial->write("?A\r");
+	serial_port_->write("?V\r");
 	
 	// Discard the first read (it is an echo of the command)
-	resposta = porta_serial->readline(100,"\r");
-	resposta = porta_serial->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
+	resposta = serial_port_->readline(100,"\r");
 	
-	sscanf(resposta.c_str(),"A	=%f:%f\r",&dados.current_d,&dados.current_e);
+	sscanf(resposta.c_str(),"V=%f:%f:%f\r",&data_.volt_internal_,&data_.volt_battery_,&data_.volt_output_);
 }
 
-float Driver::read_current_d(){
-	return dados.current_d;
+float Driver::volt_int(){
+	return data_.volt_internal_/10;
 }
 
-float Driver::read_current_e(){
-	return dados.current_e;
+float Driver::volt_bat(){
+	return data_.volt_battery_/10;
 }
 
-void Driver::read_temp(){
-	std::string resposta;
-	
-	porta_serial->write("?T\r");
-	
-	// Discard the first read (it is an echo of the command)
-	resposta = porta_serial->readline(100,"\r");
-	resposta = porta_serial->readline(100,"\r");
-	
-	sscanf(resposta.c_str(),"T=%d:%d:%d\r",&dados.temp_MCU,&dados.temp_motor1,&dados.temp_motor2);
-}
-
-int Driver::read_temp_MCU(){
-	return dados.temp_MCU;
-}
-
-int Driver::read_temp_motor1(){
-	return dados.temp_motor1;
-}
-
-int Driver::read_temp_motor2(){
-	return dados.temp_motor2;
-}	
-
-void Driver::read_volt(){
-	std::string resposta;
-	
-	porta_serial->write("?V\r");
-	
-	// Discard the first read (it is an echo of the command)
-	resposta = porta_serial->readline(100,"\r");
-	resposta = porta_serial->readline(100,"\r");
-	
-	sscanf(resposta.c_str(),"V=%f:%f:%f\r",&dados.volt_internal,&dados.volt_battery,&dados.volt_output);
-}
-
-float Driver::read_volt_int(){
-	return dados.volt_internal/10;
-}
-
-float Driver::read_volt_bat(){
-	return dados.volt_battery/10;
-}
-
-float Driver::read_volt_out(){
-	return dados.volt_output/1000;
+float Driver::volt_out(){
+	return data_.volt_output_/1000;
 }
 	
 
-void Driver::read(){
-	read_speed();
-	read_current();
-	read_temp();
-	read_volt();
+void Driver::get_all(){
+	get_speed();
+	get_current();
+	get_temp();
+	get_volt();
 }
 
 Driver::~Driver(){
 	std::cout<<"\nFinish program..."<<std::endl;
-	delete porta_serial;
+	delete serial_port_;
 }
 
 
