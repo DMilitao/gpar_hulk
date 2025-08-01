@@ -1,14 +1,19 @@
 #include "string.h"
 
+#include <chrono>
 #include <cstdio>
 #include <iostream>
+#include <thread>
 #include <stdlib.h>
 #include <sstream>
 #include <unistd.h>
 
-//#include "ros/ros.h"
+#include "ros/ros.h"
 #include "sensor_msgs/BatteryState.h"
 #include "serial/serial.h"
+
+#ifndef GPAR_HULK_INCLUDE_DRIVER_HDC2450_H
+#define GPAR_HULK_INCLUDE_DRIVER_HDC2450_H
 
 struct DataBase{
 
@@ -36,8 +41,15 @@ class Driver
 		/**
 		 * \brief Open the serial port
 		 * \param serial_port The desired port to connect
+		 * \return true if open the port, false otherwise
 		 */
-		void serial_open(std::string serial_port);
+		bool serial_open(std::string serial_port);
+
+		/**
+		 * \brief Verify if the serial port is open
+		 * \return true if is open, false otherwise
+		 */
+		bool serial_isOpen();
 
 		/**
 		 * \brief Set the RPM speed of each wheel
@@ -140,20 +152,35 @@ class Driver
 };
 
 Driver::Driver(){
-	std::cout<<"---HULK PRINCIPAL NODE--"<<std::endl;
-	//ROS_INFO("HULK DRIVER STARTED");
+	ROS_INFO("--- HULK DRIVER STARTED ---");
 }
 
-void Driver::serial_open(std::string serial_port){
-	serial_port_ = new serial::Serial(serial_port,115200,serial::Timeout::simpleTimeout(1000));
+bool Driver::serial_open(std::string serial_port){
 
-	while(!serial_port_->isOpen()) {
-		//ROS_ERROR("DRIVER NOT FOUND");
-		std::cout<<"Waiting...";
+	int aux = 0;
+	while ( (access(serial_port.c_str(), R_OK) == -1) ){
+		aux++;
+		ROS_ERROR("DRIVER NOT FOUND");
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		if ( aux == 10 ) {
+			ROS_FATAL("SERIAL PORT NOT FOUND: SHUTTING DOWN");
+			return false;
+		}
 	}
 
-	//ROS_INFO("SERIAL PORT IS READY!");
-	std::cout<<"Serial port is ready!"<<std::endl;
+	serial_port_ = new serial::Serial(serial_port,115200,serial::Timeout::simpleTimeout(1000));
+
+	while(!serial_port_->isOpen()) {}
+
+	ROS_INFO("SERIAL PORT IS READY!");
+	return true;
+}
+
+bool Driver::serial_isOpen(){
+	if ( serial_port_ ) {
+		return serial_port_->isOpen();
+	}
+	return false;
 }
 
 void Driver::set_speed(int right_speed_rpm, int left_speed_rpm){	
@@ -277,11 +304,11 @@ void Driver::get_all(){
 }
 
 Driver::~Driver(){
-	std::cout<<"\nFinish program..."<<std::endl;
-	delete serial_port_;
+	//std::cout<< "\n Finish program..." <<std::endl;
+	if (serial_port_) {
+		delete serial_port_;
+		serial_port_ = nullptr; 
+	}
 }
 
-
-
-	
-
+#endif

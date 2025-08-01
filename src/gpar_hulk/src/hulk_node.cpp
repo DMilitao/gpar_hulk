@@ -8,6 +8,8 @@
 #include "math.h"
 #include "geometry_msgs/Point.h"
 
+#include "../../serial_port_define.h"
+
 void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
 //void Set_Position(const std_msgs::String::ConstPtr& position);
 void hulk_battery();
@@ -23,13 +25,12 @@ float left_speed_rad;
 int right_speed_rpm = 0;
 int left_speed_rpm = 0;
 
-
 //Orientation and Translation
 float x = 0;
 float y = 0;
 float theta = 0;
 
-std::string serial_port = "/dev/ttyACM0";
+std::string serial_port = serial_port_driver;
 
 Driver HULK;
 
@@ -37,8 +38,6 @@ sensor_msgs::BatteryState hulk_data;
 
 int main(int argc, char **argv)
 {
-	//std_msgs::String velocidade;
-	//std_msgs::String position;
 	geometry_msgs::Point hulk_position;
 	geometry_msgs::Point hulk_speed; //left_speed_rpm --> x and right_speed_rpm --> y
 
@@ -52,24 +51,32 @@ int main(int argc, char **argv)
 
 	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,set_speed_rpm);
 
-	//n_private.getParam("serial_port",serial_port);	
+	n_private.getParam("serial_port_driver",serial_port);	
 	
-	HULK.serial_open(serial_port);
+	if ( !HULK.serial_open(serial_port) ){
+		ros::shutdown();
+	};
 	
 	ros::Rate freq(20);
-
 	ros::Time current_time;
 
 	while(ros::ok()){
 	current_time = ros::Time::now();
+
+	if ( HULK.serial_isOpen() ) {
+		ROS_FATAL("SERIAL COMMUNICATION FAILED");
+		ros::shutdown();
+		continue;
+	}
 
 	HULK.get_all();
 	hulk_battery();
 	hulk_odometry();
 
 	if ( hulk_data.voltage < th_battery_min ) {
-		std::cout << "Battery level extremely low: Shutting down the node" << std::endl;
+		ROS_FATAL("Battery level extremely low: Shutting down the node");
 		ros::shutdown();
+		continue;
 	}
 
 	hulk_position.x = x;
