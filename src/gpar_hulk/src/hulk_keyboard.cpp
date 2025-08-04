@@ -52,42 +52,41 @@ void Hulk_move::keyloop(){
   	puts("Reading from keyboard");
   	puts("---------------------------");
   	puts("Use arrow keys to move Hulk.");
-	while(ros::ok())
- {	
-    // get the next event from the keyboard  
-    if(read(kfd, &c, 1) < 0)
-    {
-      perror("read():");
-      exit(-1);
-    }
-    //ROS_INFO("value: 0x%02X\n", c);
-	switch(c){
-	case KEYCODE_RIGHT:
-		ROS_INFO("Move to right");
-		angular=-0.6;
-		linear=0.0;
-	break;
-	case KEYCODE_LEFT:
-		ROS_INFO("Move to left");
-		angular=0.6;
-		linear=0.0;
-	break;
-	case KEYCODE_UP:
-		ROS_INFO("Move to up");
-		linear=0.2;
-		angular=0.0;
-	break;
-	case KEYCODE_DOWN:
-		ROS_INFO("Move to down");
-		linear=-0.2;
-		angular=0.0;
-	break;
-	case KEYCODE_SPACE: 
-		ROS_INFO("Stop");
-		linear=0;	
-		angular=0;
-		
-	break;
+	while(ros::ok()) {	
+		// get the next event from the keyboard  
+		if(read(kfd, &c, 1) < 0)
+		{
+			perror("read():");
+			exit(-1);
+		}
+		//ROS_INFO("value: 0x%02X\n", c);
+		switch(c){
+		case KEYCODE_RIGHT:
+			ROS_INFO("Move to right");
+			angular=-0.6;
+			linear=0.0;
+		break;
+		case KEYCODE_LEFT:
+			ROS_INFO("Move to left");
+			angular=0.6;
+			linear=0.0;
+		break;
+		case KEYCODE_UP:
+			ROS_INFO("Move to up");
+			linear=0.2;
+			angular=0.0;
+		break;
+		case KEYCODE_DOWN:
+			ROS_INFO("Move to down");
+			linear=-0.2;
+			angular=0.0;
+		break;
+		case KEYCODE_SPACE: 
+			ROS_INFO("Stop");
+			linear=0;	
+			angular=0;
+			
+		break;
  
 	}
 	geometry_msgs::Twist velocidade;

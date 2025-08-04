@@ -1,3 +1,10 @@
 <launch>
 	<node name="hulk_node" pkg="gpar_hulk" type="hulk_node" output="screen"/>
+	
+	<node pkg="twist_mux" type="twist_mux" name="speed_command">
+    <rosparam command="load" file="$/config/speed_config.yaml" />
+    
+    <remap from="cmd_vel_out" to="/speed"/>
+  </node>
+
 </launch>
