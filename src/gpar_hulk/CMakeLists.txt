@@ -215,6 +215,9 @@ target_link_libraries(serial_test ${catkin_LIBRARIES})
 add_executable(hulk_keyboard src/hulk_keyboard.cpp)
 target_link_libraries(hulk_keyboard ${catkin_LIBRARIES})
 
+add_executable(hulk_trajectory src/hulk_trajectory.cpp)
+target_link_libraries(hulk_trajectory ${catkin_LIBRARIES})
+
 add_executable(self_test src/self_test.cpp)
 target_link_libraries(self_test ${catkin_LIBRARIES})
 

@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	ros::Publisher info_battery = n_private.advertise<sensor_msgs::BatteryState>("battery_info",1000);
 	ros::Publisher info_odometry = n_private.advertise<geometry_msgs::Point>("odometry",1000);
 
-	ros::Subscriber get_velocity = n.subscribe("/hulk_keyboard/speed",1000,set_speed_rpm);
+	ros::Subscriber get_velocity = n.subscribe("/speed",1000,set_speed_rpm);
 
 	n_private.getParam("serial_port_driver",serial_port);	
 	
@@ -63,11 +63,11 @@ int main(int argc, char **argv)
 	while(ros::ok()){
 	current_time = ros::Time::now();
 
-	if ( HULK.serial_isOpen() ) {
-		ROS_FATAL("SERIAL COMMUNICATION FAILED");
-		ros::shutdown();
-		continue;
-	}
+	//if ( HULK.serial_isOpen() ) {
+	//	ROS_FATAL("SERIAL COMMUNICATION FAILED");
+	//	ros::shutdown();
+	//	continue;
+	//}
 
 	HULK.get_all();
 	hulk_battery();
@@ -140,6 +140,7 @@ void hulk_odometry(){
 	// cálculo de theta
 	// obs: curva para direita -> w<0 ; curva para esquerda -> w>0
 	theta = theta + ((right_speed_m - left_speed_m)/L)*dt;
+	theta = atan2(sin(theta),cos(theta));
 
 	// cálculo de X e Y
 	x = x + ((left_speed_m + right_speed_m)/2)*cos(theta)*dt;
