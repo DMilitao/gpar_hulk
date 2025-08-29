@@ -1,0 +1,17 @@
+topics:
+  - name: keyboard
+    topic: /hulk_keyboard/speed
+    timeout: 0.5  
+    priority: 200
+
+  - name: trajectory
+    topic: /hulk_trajectory/speed
+    timeout: 0.5  
+    priority: 100
+
+
+locks:
+  - name: 'emergency_stop'
+    topic: '/stop'
+    timeout:   0.0
+    priority:  10
