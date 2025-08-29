@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 	
 	geometry_msgs::Twist speed;
 	ros::Publisher set_speed = n.advertise<geometry_msgs::Twist>("speed", 1000);
-	ros::Subscriber get_position = n.subscribe("/hulk_node/odometry", 1000, position_control_law);
+	ros::Subscriber get_position = n.subscribe("/hulk_node/odometry_filtered_simplifed", 1000, position_control_law);
 
 	ros::Rate freq(20);
 	while(ros::ok()){

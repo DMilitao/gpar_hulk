@@ -6,4 +6,7 @@
     	<remap from="cmd_vel_out" to="/speed"/>
   	</node>
 
+	<node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+		<rosparam command="load" file="$(find gpar_hulk)/src/config/ekf.yaml" />
+	</node>
 </launch>

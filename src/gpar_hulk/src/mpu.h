@@ -49,12 +49,25 @@ struct data_axis
         return gyro_;
     };
 
+    void set_bias_accel(data_axis bias_accel) {
+        bias_accel_ = bias_accel;
+    }
+
+    void set_bias_gyro(data_axis bias_gyro) {
+        bias_gyro_ = bias_gyro;
+    }
+
+    void fix_bias();
+
  private:
     int file_;
     uint8_t address_;
 
     data_axis accel_ = {0.0, 0.0, 0.0};
     data_axis gyro_ = {0.0, 0.0, 0.0};
+
+    data_axis bias_accel_ = {0, 0, 0};
+    data_axis bias_gyro_ = {0, 0, 0};
 
     void writeRegister(uint8_t reg, uint8_t value);
     void readRegisters(uint8_t reg, uint8_t* buffer, int length);
@@ -103,13 +116,13 @@ void mpu::read_all() {
     uint8_t buffer[14];
     readRegisters(ACCEL_XOUT_H, buffer, 14);
 
-    accel_.x = static_cast<double>( ((int16_t)(buffer[0] << 8 | buffer[1])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE;
-    accel_.y = static_cast<double>( ((int16_t)(buffer[2] << 8 | buffer[3])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE;
-    accel_.z = static_cast<double>( ((int16_t)(buffer[4] << 8 | buffer[5])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE;
+    accel_.x = static_cast<double>( ((int16_t)(buffer[0] << 8 | buffer[1])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE - bias_accel_.x;
+    accel_.y = static_cast<double>( ((int16_t)(buffer[2] << 8 | buffer[3])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE - bias_accel_.y;
+    accel_.z = static_cast<double>( ((int16_t)(buffer[4] << 8 | buffer[5])) ) / ACCEL_SENSITIVITY * GRAVITY_CTE - bias_accel_.z;
 
-    gyro_.x = static_cast<double>( ((int16_t)(buffer[8] << 8 | buffer[9])) ) / GYRO_SENSITIVITY * DEG2RAD;
-    gyro_.y = static_cast<double>( ((int16_t)(buffer[10] << 8 | buffer[11])) ) / GYRO_SENSITIVITY * DEG2RAD;
-    gyro_.z = static_cast<double>( ((int16_t)(buffer[12] << 8 | buffer[13])) ) / GYRO_SENSITIVITY * DEG2RAD;
+    gyro_.x = static_cast<double>( ((int16_t)(buffer[8] << 8 | buffer[9])) ) / GYRO_SENSITIVITY * DEG2RAD - bias_gyro_.x;
+    gyro_.y = static_cast<double>( ((int16_t)(buffer[10] << 8 | buffer[11])) ) / GYRO_SENSITIVITY * DEG2RAD - bias_gyro_.y;
+    gyro_.z = static_cast<double>( ((int16_t)(buffer[12] << 8 | buffer[13])) ) / GYRO_SENSITIVITY * DEG2RAD - bias_gyro_.z;
 }
 
  void mpu::writeRegister(uint8_t reg, uint8_t value) {
@@ -136,4 +149,33 @@ void mpu::readRegisters(uint8_t reg, uint8_t* buffer, int length) {
         ss << "Error reading MPU data at address " << std::hex << (int)address_;
         ROS_ERROR(ss.str().c_str());
     }
+}
+
+void mpu::fix_bias(){
+    data_axis bias_accel;
+	data_axis bias_gyro;
+	int number_samples = 100;
+
+	for (int i = 0; i < number_samples; i++) {
+		read_all();
+		data_axis accel_read = accel();
+		data_axis gyro_read = gyro();
+
+		bias_accel.x += accel_read.x;
+		bias_accel.y += accel_read.y;
+		bias_accel.z += accel_read.z;
+		bias_gyro.x += gyro_read.x;
+		bias_gyro.y += gyro_read.y;
+		bias_gyro.z += gyro_read.z;
+	}
+
+	bias_accel.x = bias_accel.x / (float)number_samples;
+	bias_accel.y = bias_accel.y / (float)number_samples;
+	bias_accel.z = bias_accel.z / (float)number_samples - GRAVITY_CTE;
+	bias_gyro.x = bias_gyro.x / (float)number_samples;
+	bias_gyro.y = bias_gyro.y / (float)number_samples;
+	bias_gyro.z = bias_gyro.z / (float)number_samples;
+
+	set_bias_accel(bias_accel);
+	set_bias_gyro(bias_gyro);
 }

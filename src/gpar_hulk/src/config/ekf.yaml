@@ -1,0 +1,52 @@
+# Arquivo de configuração para o ekf_localization_node
+# Frequência de atualização em Hz
+frequency: 20
+
+# Coloque em modo 2D para robôs que operam em um plano
+two_d_mode: true
+
+# Frames
+map_frame: map          # Opcional, pode ser ignorado por agora
+odom_frame: odom        # O frame de odometria, não deve ter descontinuidades
+base_link_frame: base_link # O frame base do seu robô
+world_frame: odom       # Para odometria pura, o mundo é o frame odom
+
+process_noise_covariance: [
+# X, Y,  Z,  R,  P,  Y,  VX, VY, VZ, VR, VP, VY, AX, AY, AZ
+  1e-3, 0,   0,   0,   0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # X
+  0,   1e-3, 0,   0,   0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Y
+  0,   0,   1e-6,0,   0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Z
+  0,   0,   0,   1e-6,0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Roll
+  0,   0,   0,   0,   1e-6,0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Pitch
+  0,   0,   0,   0,   0,   1e-2, 0,  0,  0,  0,  0,  0,  0,  0,  0, # Yaw
+  0,   0,   0,   0,   0,   0,   1e-2,0,  0,  0,  0,  0,  0,  0,  0, # VX
+  0,   0,   0,   0,   0,   0,   0,  1e-2,0,  0,  0,  0,  0,  0,  0, # VY
+  0,   0,   0,   0,   0,   0,   0,  0,  1e-6,0,  0,  0,  0,  0,  0, # VZ
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  1e-6,0,  0,  0,  0,  0, # V_Roll
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  1e-6,0,  0,  0,  0, # V_Pitch
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  0,  1e-2,0,  0,  0, # V_Yaw
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  0,  0,  1e-6,0,  0, # AX
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  0,  0,  0,  1e-6,0, # AY
+  0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  1e-6 # AZ
+]
+
+# --- Configuração das Entradas (Sensores) ---
+
+# Entrada 0: Odometria das rodas
+odom0: /hulk_node/odometry
+odom0_config: [false, false, false, # Posição: x, y, z
+               false, false, false, # Orientação: roll, pitch, yaw
+               true,  true,  false, # Velocidade linear: vx, vy, vz
+               false, false, true,  # Velocidade angular: vroll, vpitch, vyaw
+               false, false, false] # Aceleração linear
+odom0_differential: false # A odometria já fornece estado, não a sua derivada
+
+# Entrada 1: IMU
+imu0: /hulk_node/imu_raw
+imu0_config: [false, false, false, # Posição
+              false, false, false, # Orientação (NÃO use o yaw absoluto da IMU junto com o da odometria)
+              false, false, false, # Velocidade linear
+              false, false, true,  # Velocidade angular (usaremos apenas a velocidade de giro)
+              false, false, false] # Aceleração
+imu0_differential: false # A IMU fornece o estado diretamente
+imu0_remove_gravitational_acceleration: true # Remove a aceleração da gravidade

@@ -11,6 +11,7 @@
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include "nav_msgs/Odometry.h"
 
 #include "mpu.h"
@@ -18,6 +19,7 @@
 #include "../../serial_port_define.h"
 
 void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& velocidade);
+void simplified_odometry(const nav_msgs::Odometry::ConstPtr& msg);
 //void Set_Position(const std_msgs::String::ConstPtr& position);
 void hulk_battery();
 void hulk_odometry();
@@ -41,6 +43,7 @@ Driver HULK;
 mpu mpu_1;
 
 sensor_msgs::BatteryState hulk_data;
+geometry_msgs::Point odom;
 
 int main(int argc, char **argv)
 {
@@ -48,7 +51,7 @@ int main(int argc, char **argv)
 	nav_msgs::Odometry hulk_position;
 	sensor_msgs::Imu hulk_imu;
 	tf2::Quaternion q;
-	
+
 	hulk_position.pose.covariance[0] = 1e-3;
 	hulk_position.pose.covariance[7] = 1e-3;
 	hulk_position.pose.covariance[14] = 1e6;
@@ -61,14 +64,14 @@ int main(int argc, char **argv)
 	hulk_position.twist.covariance[14] = 1e6;
 	hulk_position.twist.covariance[21] = 1e6;
 	hulk_position.twist.covariance[28] = 1e6;
-	hulk_position.twist.covariance[35] = 1e-3;
+	hulk_position.twist.covariance[35] = 1e-1;
 
-	hulk_imu.angular_velocity_covariance[0] = 1e-3;
-	hulk_imu.angular_velocity_covariance[4] = 1e-3;
-	hulk_imu.angular_velocity_covariance[8] = 1e-3;
-	hulk_imu.linear_acceleration_covariance[0] = 1e-3;
-	hulk_imu.linear_acceleration_covariance[4] = 1e-3;
-	hulk_imu.linear_acceleration_covariance[8] = 1e-3;
+	hulk_imu.angular_velocity_covariance[0] = 1e-2;
+	hulk_imu.angular_velocity_covariance[4] = 1e-2;
+	hulk_imu.angular_velocity_covariance[8] = 1e-2;
+	hulk_imu.linear_acceleration_covariance[0] = 1e-2;
+	hulk_imu.linear_acceleration_covariance[4] = 1e-2;
+	hulk_imu.linear_acceleration_covariance[8] = 1e-2;
 
 	hulk_imu.orientation.x = 0.0;
 	hulk_imu.orientation.y = 0.0;
@@ -83,12 +86,14 @@ int main(int argc, char **argv)
 	ros::Publisher info_velocity = n_private.advertise<geometry_msgs::Point>("read_speed", 1000);
 	ros::Publisher info_battery = n_private.advertise<sensor_msgs::BatteryState>("battery_info", 1000);
 	ros::Publisher info_odometry = n_private.advertise<nav_msgs::Odometry>("odometry", 1000);
+	ros::Publisher info_odometry_simplified = n_private.advertise<geometry_msgs::Point>("odometry_filtered_simplifed", 1000);
 	ros::Publisher info_mpu = n_private.advertise<sensor_msgs::Imu>("imu_raw", 1000);
 
-	ros::Subscriber get_velocity = n.subscribe("/speed",1000,set_speed_rpm);
+	ros::Subscriber get_velocity = n.subscribe("/speed",1000, set_speed_rpm);
+	ros::Subscriber get_position = n.subscribe("/odometry/filtered", 1000, simplified_odometry);
 
 	n_private.getParam("serial_port_driver",serial_port);	
-	
+
 	if ( !HULK.serial_open(serial_port) ){
 		ROS_FATAL("SERIAL PORT UNAVAILABLE");
 		ros::shutdown();
@@ -100,7 +105,9 @@ int main(int argc, char **argv)
 		ROS_FATAL("MPU 1 UNAVAILABLE");
 		ros::shutdown();
 	}
-	
+
+	mpu_1.fix_bias();
+
 	ros::Rate freq(20);
 	ros::Time current_time;
 
@@ -126,13 +133,13 @@ int main(int argc, char **argv)
 
 	data_axis accel = mpu_1.accel();
 	data_axis gyro = mpu_1.gyro();
-	
+
 	if ( HULK.volt_bat_avg() < th_battery_min ) {
 		ROS_FATAL("Battery level extremely low: Shutting down the node");
 		ros::shutdown();
 		continue;
 	}
-	
+
 	hulk_position.header.stamp = current_time;
     q.setRPY(0, 0, theta);
     geometry_msgs::Quaternion odom_quat = tf2::toMsg(q);
@@ -157,19 +164,19 @@ int main(int argc, char **argv)
     hulk_speed.y = HULK.right_speed();
 
 	info_odometry.publish(hulk_position);
+	info_odometry_simplified.publish(odom);
 	info_mpu.publish(hulk_imu);
 	info_velocity.publish(hulk_speed);
 	info_battery.publish(hulk_data);
 
 	ros::spinOnce();
-	
+
 	freq.sleep();
 	}
 
 return 0;
 }
 
-//Realizando o cáculo das velocidades de cada motor em rpm
 void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& speed){
 	float v = speed->linear.x;
 	float w = speed->angular.z;
@@ -179,41 +186,52 @@ void set_speed_rpm(const geometry_msgs::Twist::ConstPtr& speed){
 
 	float right_speed_rpm = (right_speed_rad*60/(2*PI));
 	float left_speed_rpm = (left_speed_rad*60/(2*PI));
-	
+
 	HULK.set_speed(right_speed_rpm,left_speed_rpm);
 }
-    
+
 void hulk_battery(){
 	hulk_data.voltage = HULK.volt_bat();
 	hulk_data.current = (HULK.current_right()*1000+HULK.current_left()*10);
 	hulk_data.percentage = (HULK.volt_bat()/24)*100.0;
-	
 }
-	
+
 void hulk_odometry(){
 	float dt = 1/20.0;
 
-	// recebendo as velocidades das rodas em rpm
 	float left_speed_rpm = HULK.left_speed();
 	float right_speed_rpm = HULK.right_speed();
 
-	// conversão para rad/s
 	float left_speed_rad = (left_speed_rpm*2*PI)/60;
 	float right_speed_rad = (right_speed_rpm*2*PI)/60;
-	
-	// conversão para m/s
+
 	float left_speed_m = left_speed_rad*R;
 	float right_speed_m = right_speed_rad*R;
 
-	// cálculo de theta
 	theta_speed = (right_speed_m - left_speed_m)/L;
 	trans_speed = (left_speed_m + right_speed_m)/2;
 
-	// obs: curva para direita -> w<0 ; curva para esquerda -> w>0
 	theta = theta + theta_speed*dt;
 	theta = atan2(sin(theta),cos(theta));
 
-	// cálculo de X e Y
 	x = x + trans_speed*cos(theta)*dt;
 	y = y + trans_speed*sin(theta)*dt;
 }	
+
+void simplified_odometry(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    tf2::Quaternion q_temp(
+        msg->pose.pose.orientation.x,
+        msg->pose.pose.orientation.y,
+        msg->pose.pose.orientation.z,
+        msg->pose.pose.orientation.w);
+
+    tf2::Matrix3x3 m(q_temp);
+
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+	odom.x = msg->pose.pose.position.x;
+    odom.y = msg->pose.pose.position.y;
+	odom.z = yaw;
+}
