@@ -82,7 +82,7 @@ int main(int argc, char **argv){
 		ROS_INFO(ss.str().c_str());
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
-
+	HULK.set_speed(0,0);
 	HULK.get_all();
 
 	ss.str("");

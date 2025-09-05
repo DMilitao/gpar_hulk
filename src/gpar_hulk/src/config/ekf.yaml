@@ -19,8 +19,8 @@ process_noise_covariance: [
   0,   0,   0,   1e-6,0,   0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Roll
   0,   0,   0,   0,   1e-6,0,   0,  0,  0,  0,  0,  0,  0,  0,  0, # Pitch
   0,   0,   0,   0,   0,   1e-2, 0,  0,  0,  0,  0,  0,  0,  0,  0, # Yaw
-  0,   0,   0,   0,   0,   0,   1e-2,0,  0,  0,  0,  0,  0,  0,  0, # VX
-  0,   0,   0,   0,   0,   0,   0,  1e-2,0,  0,  0,  0,  0,  0,  0, # VY
+  0,   0,   0,   0,   0,   0,   1e-6,0,  0,  0,  0,  0,  0,  0,  0, # VX
+  0,   0,   0,   0,   0,   0,   0,  1e-6,0,  0,  0,  0,  0,  0,  0, # VY
   0,   0,   0,   0,   0,   0,   0,  0,  1e-6,0,  0,  0,  0,  0,  0, # VZ
   0,   0,   0,   0,   0,   0,   0,  0,  0,  1e-6,0,  0,  0,  0,  0, # V_Roll
   0,   0,   0,   0,   0,   0,   0,  0,  0,  0,  1e-6,0,  0,  0,  0, # V_Pitch
@@ -47,6 +47,6 @@ imu0_config: [false, false, false, # Posição
               false, false, false, # Orientação (NÃO use o yaw absoluto da IMU junto com o da odometria)
               false, false, false, # Velocidade linear
               false, false, true,  # Velocidade angular (usaremos apenas a velocidade de giro)
-              false, false, false] # Aceleração
+              true, true, false] # Aceleração
 imu0_differential: false # A IMU fornece o estado diretamente
 imu0_remove_gravitational_acceleration: true # Remove a aceleração da gravidade

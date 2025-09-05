@@ -9,9 +9,13 @@ topics:
     timeout: 0.5  
     priority: 100
 
+  - name: zerospeed
+    topic: /hulk_node/cmd_vel_zero
+    timeout: 0.0
+    priority: 1
 
 locks:
   - name: 'emergency_stop'
     topic: '/stop'
     timeout:   0.0
-    priority:  10
+    priority:  1000

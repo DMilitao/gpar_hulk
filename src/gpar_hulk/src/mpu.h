@@ -25,53 +25,130 @@
 #define GRAVITY_CTE 9.80665f
 #define DEG2RAD 3.141516/180.0
 
-struct data_axis
- {
-    double x, y, z;
- };
+/**
+ * \brief Struct to store data for an axis (x, y, z).
+ */
+struct data_axis {
+    double x;
+    double y;
+    double z;
+};
 
- class mpu {
- public:
+/**
+ * \brief Class to interface with an MPU (Motion Processing Unit) sensor.
+ *
+ * Provides methods to initialize, read from, and calibrate the accelerometer
+ * and gyroscope sensors of an MPU device connected via I2C.
+ */
+class mpu {
+public:
+    /**
+     * \brief Constructor for the mpu class.
+     *
+     * Initializes the I2C communication with the MPU device at the specified address.
+     * \param address The I2C address of the MPU device. Defaults to 0x68.
+     */
     mpu(uint8_t address = 0x68);
+
+    /**
+     * \brief Destructor for the mpu class.
+     *
+     * Closes the connection to the I2C device.
+     */
     ~mpu();
 
+    /**
+     * \brief Wakes the MPU from sleep mode.
+     *
+     * Configures the power management register to activate the sensor.
+     */
     void wakeUp();
 
+    /**
+     * \brief Checks if the communication with the MPU is established.
+     *
+     * \return True if the connection is successful, False otherwise.
+     */
     bool isConnected();
 
+    /**
+     * \brief Reads all sensor data (accelerometer and gyroscope).
+     *
+     * Updates the internal 'accel_' and 'gyro_' variables with new readings,
+     * applying the bias correction.
+     */
     void read_all();
 
+    /**
+     * \brief Gets the latest accelerometer reading.
+     *
+     * \return A 'data_axis' struct containing the accelerometer data.
+     */
     struct data_axis accel() {
         return accel_;
     };
 
+    /**
+     * \brief Gets the latest gyroscope reading.
+     *
+     * \return A 'data_axis' struct containing the gyroscope data.
+     */
     struct data_axis gyro() {
         return gyro_;
     };
 
+    /**
+     * \brief Sets the bias (offset) value for the accelerometer.
+     *
+     * \param bias_accel A 'data_axis' struct with the bias values
+     * for the x, y, and z axes of the accelerometer.
+     */
     void set_bias_accel(data_axis bias_accel) {
         bias_accel_ = bias_accel;
     }
 
+    /**
+     * \brief Sets the bias (offset) value for the gyroscope.
+     *
+     * \param bias_gyro A 'data_axis' struct with the bias values
+     * for the x, y, and z axes of the gyroscope.
+     */
     void set_bias_gyro(data_axis bias_gyro) {
         bias_gyro_ = bias_gyro;
     }
 
+    /**
+     * \brief Calculates and stores the sensor bias.
+     *
+     * Performs a series of readings while the sensor is at rest to determine
+     * the average offset for the accelerometer and gyroscope and stores it internally.
+     */
     void fix_bias();
 
- private:
-    int file_;
-    uint8_t address_;
+private:
+    int file_;                          //!> File descriptor for the I2C device.
+    uint8_t address_;                   //!> I2C address of the MPU device.
+    data_axis accel_ = {0.0, 0.0, 0.0}; //!> Stores the latest accelerometer data.
+    data_axis gyro_ = {0.0, 0.0, 0.0};  //!> Stores the latest gyroscope data.
+    data_axis bias_accel_ = {0, 0, 0};  //!> Stores the accelerometer bias (offset).
+    data_axis bias_gyro_ = {0, 0, 0};   //!> Stores the gyroscope bias (offset).
 
-    data_axis accel_ = {0.0, 0.0, 0.0};
-    data_axis gyro_ = {0.0, 0.0, 0.0};
-
-    data_axis bias_accel_ = {0, 0, 0};
-    data_axis bias_gyro_ = {0, 0, 0};
-
+    /**
+     * \brief Writes an 8-bit value to a specific MPU register.
+     *
+     * \param reg The address of the register to write to.
+     * \param value The 8-bit value to be written.
+     */
     void writeRegister(uint8_t reg, uint8_t value);
-    void readRegisters(uint8_t reg, uint8_t* buffer, int length);
 
+    /**
+     * \brief Reads a sequence of bytes from MPU registers.
+     *
+     * \param reg The starting register address from which to read.
+     * \param buffer Pointer to the buffer where the read data will be stored.
+     * \param length The number of bytes to read.
+     */
+    void readRegisters(uint8_t reg, uint8_t* buffer, int length);
 };
 
 #endif
