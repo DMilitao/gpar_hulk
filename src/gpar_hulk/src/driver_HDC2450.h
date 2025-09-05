@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <sstream>
 #include <unistd.h>
+#include <deque>
 
 #include "ros/ros.h"
-#include "sensor_msgs/BatteryState.h"
 #include "serial/serial.h"
 
 #ifndef GPAR_HULK_INCLUDE_DRIVER_HDC2450_H
@@ -139,6 +139,17 @@ class Driver
 		float volt_out();
 
 		/**
+		 * \brief Update battery voltage vector
+		 */
+		void update_vbattery();
+
+		/**
+		 * \brief Compute the average level of the last 10 samples
+		 * \return The average level computed
+		 */
+		float volt_bat_avg();
+
+		/**
 		 * \brief Read all components
 		 */
 		void get_all();
@@ -148,6 +159,7 @@ class Driver
 	private:
 		DataBase data_;					//!> Storage data about system
 		serial::Serial *serial_port_;	//!> Serial port object
+		std::deque<float> battery_vector;
 		int cte_driver_ = 5;			//!> Driver constant for speed setpoint conversion
 };
 
@@ -294,13 +306,29 @@ float Driver::volt_bat(){
 float Driver::volt_out(){
 	return data_.volt_output_/1000;
 }
-	
+
+void Driver::update_vbattery(){
+	battery_vector.push_back(volt_bat());
+
+	if (battery_vector.size() > 100) {
+		battery_vector.pop_front();
+	}
+}
+
+float Driver::volt_bat_avg() {
+	float battery_sum = 0;
+	for (int i = 0; i < battery_vector.size(); i++) {
+		battery_sum+= battery_vector.at(i);
+	}
+	return battery_sum / battery_vector.size();
+}
 
 void Driver::get_all(){
 	get_speed();
 	get_current();
 	get_temp();
 	get_volt();
+	update_vbattery();
 }
 
 Driver::~Driver(){

@@ -1,9 +1,15 @@
 <launch>
 	<node name="hulk_node" pkg="gpar_hulk" type="hulk_node" output="screen"/>
 	
+	<node pkg="tf2_ros" type="static_transform_publisher" name="base_to_imu_broadcaster" 
+        args="0.15 0 0 0 0 0 base_link imu_link" />
+
 	<node pkg="twist_mux" type="twist_mux" name="speed_cmd">
     	<rosparam file="$(find gpar_hulk)/src/config/speed_config.yaml" command="load" />
     	<remap from="cmd_vel_out" to="/speed"/>
   	</node>
 
+	<node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+		<rosparam command="load" file="$(find gpar_hulk)/src/config/ekf.yaml" />
+	</node>
 </launch>
